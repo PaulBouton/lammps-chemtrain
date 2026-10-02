@@ -16,7 +16,7 @@
             "inherits": "default",
             "cacheVariables": {
                 "BUILD_MPI" : "ON",
-                "PKG_CHEMTRAIN" : "ON",
+                "PKG_CHEMTRAIN-DEPLOY" : "ON",
                 "CHEMTRAIN_DEPLOY_ROOT" : "${sourceDir}/../chemtrain/chemtrain-deploy",
                 "CHEMTRAIN_DEPLOY_LIBCONNECTOR" : "${sourceDir}/../src/CHEMTRAIN-DEPLOY/lib/libconnector.so"
             }
