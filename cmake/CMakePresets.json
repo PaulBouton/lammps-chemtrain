@@ -1,0 +1,33 @@
+{
+    "version": 1,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "binaryDir": "${sourceDir}/../build",
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "chemtrain",
+            "inherits": "default",
+            "cacheVariables": {
+                "BUILD_MPI" : "ON",
+                "PKG_CHEMTRAIN" : "ON",
+                "CHEMTRAIN_DEPLOY_ROOT" : "${sourceDir}/../chemtrain/chemtrain-deploy",
+                "CHEMTRAIN_DEPLOY_LIBCONNECTOR" : "${sourceDir}/../src/CHEMTRAIN-DEPLOY/lib/libconnector.so"
+            }
+        },
+        {
+            "name": "qtcreator",
+            "inherits": "chemtrain",
+            "binaryDir": "/tmp/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}
