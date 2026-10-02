@@ -1,6 +1,6 @@
 variable model index lennard_jones_sparse.ptb
 variable newton_pair index on
-variable backend index cuda
+variable backend index cpu
 
 units lj
 atom_style atomic
@@ -29,6 +29,9 @@ variable kinetic equal ke
 variable total equal etotal
 fix energy all ave/time 1 1 1 v_potential v_kinetic v_total file energy-bulk.dat
 
+compute pe_atom all pe/atom
+dump 1 all custom 10 dump.pe id type x y z c_pe_atom
+
 thermo 1
 thermo_style custom step atoms pe ke etotal press
 thermo_modify norm no
@@ -39,7 +42,7 @@ run 0
 variable initial_energy equal $(etotal:%.17g)
 variable energy_drift equal abs(etotal-v_initial_energy)/atoms
 fix drift all vector 1 v_energy_drift
-run 20
+run 100
 variable max_energy_drift equal max(f_drift)
 print "Maximum energy drift per atom: ${max_energy_drift}"
 if "${max_energy_drift} > 1.0e-3" then "quit 1"
