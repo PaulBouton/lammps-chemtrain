@@ -1,0 +1,15 @@
+# zlib is searched for in the top level CMakeLists.txt file
+if(NOT WITH_ZLIB)
+  message(WARNING "No Zlib development support found. Disabling COMPRESS package...")
+  set(PKG_COMPRESS OFF CACHE BOOL "" FORCE)
+  return()
+endif()
+
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+  pkg_check_modules(Zstd IMPORTED_TARGET libzstd>=1.4)
+  if(Zstd_FOUND)
+    target_compile_definitions(lammps PRIVATE -DLAMMPS_ZSTD)
+    target_link_libraries(lammps PRIVATE PkgConfig::Zstd)
+  endif()
+endif()

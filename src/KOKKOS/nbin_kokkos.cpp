@@ -1,0 +1,216 @@
+// clang-format off
+/* ----------------------------------------------------------------------
+   LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
+   https://www.lammps.org/, Sandia National Laboratories
+   LAMMPS development team: developers@lammps.org
+
+   Copyright (2003) Sandia Corporation.  Under the terms of Contract
+   DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
+   certain rights in this software.  This software is distributed under
+   the GNU General Public License.
+
+   See the README file in the top-level LAMMPS directory.
+------------------------------------------------------------------------- */
+
+#include "nbin_kokkos.h"
+
+#include "atom_kokkos.h"
+#include "atom_masks.h"
+#include "comm.h"
+#include "group.h"
+#include "kokkos.h"
+#include "memory_kokkos.h"
+#include "update.h"
+
+using namespace LAMMPS_NS;
+
+/* ---------------------------------------------------------------------- */
+
+template<class DeviceType>
+NBinKokkos<DeviceType>::NBinKokkos(LAMMPS *lmp) : NBinStandard(lmp) {
+  atoms_per_bin = 16;
+
+  d_resize = typename AT::t_int_scalar("NeighborKokkosFunctor::resize");
+  h_resize = Kokkos::create_mirror_view(d_resize);
+  h_resize() = 1;
+
+  if (lmp->kokkos->nbin_atoms_per_bin_set)
+    atoms_per_bin = lmp->kokkos->nbin_atoms_per_bin;
+
+  kokkos = 1;
+}
+
+/* ----------------------------------------------------------------------
+   setup neighbor binning geometry
+   bin numbering in each dimension is global:
+     0 = 0.0 to binsize, 1 = binsize to 2*binsize, etc
+     nbin-1,nbin,etc = bbox-binsize to bbox, bbox to bbox+binsize, etc
+     -1,-2,etc = -binsize to 0.0, -2*binsize to -binsize, etc
+   code will work for any binsize
+     since next(xyz) and stencil extend as far as necessary
+     binsize = 1/2 of cutoff is roughly optimal
+   for orthogonal boxes:
+     a dim must be filled exactly by integer # of bins
+     in periodic, procs on both sides of PBC must see same bin boundary
+     in non-periodic, coord2bin() still assumes this by use of nbin xyz
+   for triclinic boxes:
+     tilted simulation box cannot contain integer # of bins
+     stencil & neigh list built differently to account for this
+   mbinlo = lowest global bin any of my ghost atoms could fall into
+   mbinhi = highest global bin any of my ghost atoms could fall into
+   mbin = number of bins I need in a dimension
+------------------------------------------------------------------------- */
+
+template<class DeviceType>
+void NBinKokkos<DeviceType>::bin_atoms_setup(int nall)
+{
+  if (mbins > (int)k_bins.view_device().extent(0)) {
+    MemoryKokkos::realloc_kokkos(k_bins,"Neighbor::d_bins",mbins,atoms_per_bin);
+    bins = k_bins.view<DeviceType>();
+
+    MemoryKokkos::realloc_kokkos(k_bincount,"Neighbor::d_bincount",mbins);
+    bincount = k_bincount.view<DeviceType>();
+  }
+  if (nall > (int)k_atom2bin.view_device().extent(0)) {
+    MemoryKokkos::realloc_kokkos(k_atom2bin,"Neighbor::d_atom2bin",nall);
+    atom2bin = k_atom2bin.view<DeviceType>();
+  }
+}
+
+/* ----------------------------------------------------------------------
+   bin owned and ghost atoms
+------------------------------------------------------------------------- */
+
+template<class DeviceType>
+void NBinKokkos<DeviceType>::bin_atoms()
+{
+  last_bin = update->ntimestep;
+
+  // an include group restricts which atoms go into the bins, see below
+
+  includegroup_bitmask = includegroup ? group->bitmask[includegroup] : 0;
+  includegroup_nfirst = atom->nfirst;
+  includegroup_nlocal = atom->nlocal;
+
+  k_bins.template sync<DeviceType>();
+  k_bincount.template sync<DeviceType>();
+  k_atom2bin.template sync<DeviceType>();
+
+  h_resize() = 1;
+
+  while (h_resize() > 0) {
+    h_resize() = 0;
+    Kokkos::deep_copy(d_resize, h_resize);
+
+    MemsetZeroFunctor<DeviceType> f_zero;
+    f_zero.ptr = (void*) k_bincount.view<DeviceType>().data();
+    Kokkos::parallel_for(mbins, f_zero);
+
+    atomKK->sync(ExecutionSpaceFromDevice<DeviceType>::space,X_MASK);
+    x = atomKK->k_x.view<DeviceType>();
+
+    if (includegroup_bitmask) {
+      atomKK->sync(ExecutionSpaceFromDevice<DeviceType>::space,MASK_MASK);
+      mask = atomKK->k_mask.view<DeviceType>();
+    }
+
+    bboxlo_[0] = bboxlo[0]; bboxlo_[1] = bboxlo[1]; bboxlo_[2] = bboxlo[2];
+    bboxhi_[0] = bboxhi[0]; bboxhi_[1] = bboxhi[1]; bboxhi_[2] = bboxhi[2];
+
+    copymode = 1;
+    NPairKokkosBinAtomsFunctor<DeviceType> f(*this);
+
+    Kokkos::parallel_for(atom->nlocal+atom->nghost, f);
+    copymode = 0;
+
+    Kokkos::deep_copy(h_resize, d_resize);
+    if (h_resize()) {
+
+      // A bin overflowed its capacity.  bincount now holds the true
+      // occupancy of every bin, because the atomic increment in
+      // binatomsItem() runs for every binned atom whether or not the bin
+      // was already full.  Size atoms_per_bin from the actual maximum
+      // occupancy in a single step instead of growing by a fixed increment
+      // and re-binning all atoms once per increment.  The latter costs
+      // O(max bin occupancy) reallocations and re-bins and dominates
+      // neighbor setup for skewed distributions, e.g. the large cutoff bins
+      // used by the KOKKOS package on GPUs.
+
+      auto d_bincount = k_bincount.view<DeviceType>();
+      int max_bincount = 0;
+      Kokkos::parallel_reduce(Kokkos::RangePolicy<DeviceType>(0,mbins),
+        LAMMPS_LAMBDA(const int i, int &max_val) {
+          max_val = MAX(max_val,d_bincount[i]);
+        },Kokkos::Max<int>(max_bincount));
+
+      // grow to the true maximum occupancy plus ~10% headroom (at least 16)
+      // so small density fluctuations on later steps do not immediately
+      // force another regrow.  Reaching this branch means a bin overflowed,
+      // so max_bincount > atoms_per_bin and the new capacity strictly
+      // exceeds both the old one and the true occupancy: the next pass
+      // cannot overflow, bounding the loop at one more re-bin.
+
+      atoms_per_bin = max_bincount + MAX(16,max_bincount/10);
+
+      k_bins = DAT::tdual_int_2d("Neighbor::bins", mbins, atoms_per_bin);
+      bins = k_bins.view<DeviceType>();
+      c_bins = bins;
+    }
+  }
+
+  k_bins.template modify<DeviceType>();
+  k_bincount.template modify<DeviceType>();
+  k_atom2bin.template modify<DeviceType>();
+}
+
+/* ---------------------------------------------------------------------- */
+
+template<class DeviceType>
+// NOLINTNEXTLINE
+KOKKOS_INLINE_FUNCTION
+void NBinKokkos<DeviceType>::binatomsItem(const int &i) const
+{
+  // a non-numeric coordinate would produce a bogus bin index and the atomic
+  // update below would write out of bounds, so stop right here
+
+  if (!Kokkos::isfinite(x(i, 0)) || !Kokkos::isfinite(x(i, 1)) || !Kokkos::isfinite(x(i, 2)))
+    Kokkos::abort("Non-numeric positions - simulation unstable");
+
+  const int ibin = coord2bin(static_cast<double>(x(i, 0)), static_cast<double>(x(i, 1)), static_cast<double>(x(i, 2)));
+
+  // an atom that has left the region covered by the bins gets a bin index
+  // outside of the bin arrays and the atomic update below would write out of
+  // bounds.  this happens when atoms are lost or move too far between two
+  // neighbor list builds, so stop right here as well
+
+  if ((ibin < 0) || (ibin >= mbins))
+    Kokkos::abort("Atom outside of neighbor bin range - simulation unstable");
+
+  atom2bin(i) = ibin;
+
+  // with an include group only the atoms the group's pairs are built from
+  // belong in the bins: the owned atoms of the group, which sorting has put
+  // first, and the ghosts that are in the group.  Binning the rest would put
+  // them in the neighbor lists of the group's atoms, which is what the plain
+  // NBinStandard::bin_atoms() leaves out.
+
+  if (includegroup_bitmask) {
+    if (i < includegroup_nlocal) {
+      if (i >= includegroup_nfirst) return;
+    } else if (!(mask(i) & includegroup_bitmask)) return;
+  }
+
+  const int ac = Kokkos::atomic_fetch_add(&bincount[ibin], (int)1);
+  if (ac < (int)bins.extent(1)) {
+    bins(ibin, ac) = i;
+  } else {
+    d_resize() = 1;
+  }
+}
+
+namespace LAMMPS_NS {
+template class NBinKokkos<LMPDeviceType>;
+#ifdef LMP_KOKKOS_GPU
+template class NBinKokkos<LMPHostType>;
+#endif
+}

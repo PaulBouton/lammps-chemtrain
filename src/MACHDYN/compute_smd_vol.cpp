@@ -1,0 +1,127 @@
+/* ----------------------------------------------------------------------
+ *
+ *                    *** Smooth Mach Dynamics ***
+ *
+ * This file is part of the MACHDYN package for LAMMPS.
+ * Copyright (2014) Georg C. Ganzenmueller, georg.ganzenmueller@emi.fhg.de
+ * Fraunhofer Ernst-Mach Institute for High-Speed Dynamics, EMI,
+ * Eckerstrasse 4, D-79104 Freiburg i.Br, Germany.
+ *
+ * ----------------------------------------------------------------------- */
+
+/* ----------------------------------------------------------------------
+ LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
+ https://www.lammps.org/, Sandia National Laboratories
+ LAMMPS development team: developers@lammps.org
+
+ Copyright (2003) Sandia Corporation.  Under the terms of Contract
+ DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
+ certain rights in this software.  This software is distributed under
+ the GNU General Public License.
+
+ See the README file in the top-level LAMMPS directory.
+ ------------------------------------------------------------------------- */
+
+#include "compute_smd_vol.h"
+
+#include "atom.h"
+#include "comm.h"
+#include "error.h"
+#include "memory.h"
+#include "modify.h"
+#include "update.h"
+
+#include <cstring>
+
+using namespace LAMMPS_NS;
+
+/* ---------------------------------------------------------------------- */
+
+ComputeSMDVol::ComputeSMDVol(LAMMPS *lmp, int narg, char **arg) : Compute(lmp, narg, arg)
+{
+  if (narg != 3) error->all(FLERR, "Illegal compute smd/volume command");
+  if (atom->vfrac_flag != 1)
+    error->all(FLERR, "compute smd/volume command requires atom_style with density (e.g. smd)");
+
+  scalar_flag = 1;
+  extscalar = 1;
+  peratom_flag = 1;
+  size_peratom_cols = 0;
+
+  nmax = 0;
+  volVector = nullptr;
+}
+
+/* ---------------------------------------------------------------------- */
+
+ComputeSMDVol::~ComputeSMDVol()
+{
+  memory->sfree(volVector);
+}
+
+/* ---------------------------------------------------------------------- */
+
+void ComputeSMDVol::init()
+{
+
+  if ((comm->me == 0) && (modify->get_compute_by_style("^smd/vol").size() > 1))
+    error->warning(FLERR, "More than one compute {}", style);
+}
+
+/* ---------------------------------------------------------------------- */
+
+void ComputeSMDVol::compute_peratom()
+{
+  invoked_peratom = update->ntimestep;
+
+  // grow volVector array if necessary
+
+  if (atom->nmax > nmax) {
+    memory->sfree(volVector);
+    nmax = atom->nmax;
+    volVector = (double *) memory->smalloc(nmax * sizeof(double), "atom:volVector");
+    vector_atom = volVector;
+  }
+
+  double *vfrac = atom->vfrac;
+  int *mask = atom->mask;
+  int nlocal = atom->nlocal;
+
+  for (int i = 0; i < nlocal; i++) {
+    if (mask[i] & groupbit) {
+      volVector[i] = vfrac[i];
+    } else {
+      volVector[i] = 0.0;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+
+double ComputeSMDVol::compute_scalar()
+{
+
+  invoked_scalar = update->ntimestep;
+  double *vfrac = atom->vfrac;
+  int *mask = atom->mask;
+  int nlocal = atom->nlocal;
+
+  double this_proc_sum_volumes = 0.0;
+  for (int i = 0; i < nlocal; i++) {
+    if (mask[i] & groupbit) { this_proc_sum_volumes += vfrac[i]; }
+  }
+
+  MPI_Allreduce(&this_proc_sum_volumes, &scalar, 1, MPI_DOUBLE, MPI_SUM, world);
+
+  return scalar;
+}
+
+/* ----------------------------------------------------------------------
+ memory usage of local atom-based array
+ ------------------------------------------------------------------------- */
+
+double ComputeSMDVol::memory_usage()
+{
+  double bytes = (double) nmax * sizeof(double);
+  return bytes;
+}

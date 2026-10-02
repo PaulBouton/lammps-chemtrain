@@ -1,0 +1,34 @@
+# preset that turns off all packages that require some form of external
+# library or special compiler (fortran or cuda) or equivalent.
+
+set(PACKAGES_WITH_LIB
+  ADIOS
+  APIP
+  CHEMTRAIN-DEPLOY
+  COMPRESS
+  ELECTRODE
+  FENIX
+  GPU
+  H5MD
+  KIM
+  KOKKOS
+  LATBOLTZ
+  LEPTON
+  MACHDYN
+  MDI
+  ML-HDNNP
+  ML-PACE
+  ML-QUIP
+  ML-RUNNER
+  MOLFILE
+  NETCDF
+  PLUMED
+  PYTHON
+  QMMM
+  QMMM-XTB
+  SCAFACOS
+  VORONOI)
+
+foreach(PKG ${PACKAGES_WITH_LIB})
+  set(PKG_${PKG} OFF CACHE BOOL "" FORCE)
+endforeach()

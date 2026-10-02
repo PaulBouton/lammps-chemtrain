@@ -1,0 +1,53 @@
+variable model index lennard_jones_sparse.ptb
+variable newton_pair index on
+variable backend index cuda
+
+units lj
+atom_style charge
+boundary p p p
+newton ${newton_pair}
+
+# Two separated clusters test both a single pair and a three-particle neighbor
+# list without interactions between the clusters.
+region box block 0 20 0 20 0 20
+create_box 1 box
+create_atoms 1 single 2.0 2.0 2.0 units box
+create_atoms 1 single 4.2 2.0 2.0 units box
+create_atoms 1 single 10.0 10.0 10.0 units box
+create_atoms 1 single 11.3 10.1 10.2 units box
+create_atoms 1 single 10.4 11.2 9.8 units box
+mass 1 1.0
+
+# Evaluate the chemtrain model and retain its energy and pressure tensor.
+pair_style chemtrain ${backend}
+pair_coeff * * ${model}
+
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check yes
+
+thermo 1
+thermo_style custom step atoms pe press pxx pyy pzz pxy pxz pyz
+thermo_modify norm no
+run 0
+
+variable chemtrain_energy equal $(pe:%.17g)
+variable chemtrain_pxx equal $(pxx:%.17g)
+variable chemtrain_pyy equal $(pyy:%.17g)
+variable chemtrain_pzz equal $(pzz:%.17g)
+variable chemtrain_pxy equal $(pxy:%.17g)
+variable chemtrain_pxz equal $(pxz:%.17g)
+variable chemtrain_pyz equal $(pyz:%.17g)
+
+# Evaluate the same configuration with the analytic LAMMPS reference.
+pair_style lj/charmm/coul/charmm 2.0 2.5
+pair_coeff * * 1.0 1.0
+run 0
+
+# Compare the energy and all six pressure-tensor components.
+if "$(abs(pe-v_chemtrain_energy)) > 2.0e-5" then "quit 1"
+if "$(abs(pxx-v_chemtrain_pxx)) > 2.0e-7" then "quit 1"
+if "$(abs(pyy-v_chemtrain_pyy)) > 2.0e-7" then "quit 1"
+if "$(abs(pzz-v_chemtrain_pzz)) > 2.0e-7" then "quit 1"
+if "$(abs(pxy-v_chemtrain_pxy)) > 2.0e-7" then "quit 1"
+if "$(abs(pxz-v_chemtrain_pxz)) > 2.0e-7" then "quit 1"
+if "$(abs(pyz-v_chemtrain_pyz)) > 2.0e-7" then "quit 1"

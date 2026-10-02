@@ -1,0 +1,12 @@
+variable  newton_pair  index on
+variable  newton_bond  index on
+variable  data_file    index ${input_dir}/data.chemtrain
+variable  pair_style   index 'zero 2.5'
+
+units           lj
+atom_style      atomic
+atom_modify     map array
+boundary        f f f
+newton          ${newton_pair} ${newton_bond}
+pair_style      ${pair_style}
+read_data       ${data_file}

@@ -1,0 +1,30 @@
+CHEMTRAIN-DEPLOY package
+========================
+
+The source tree contains the optional in-tree chemtrain-deploy package. The
+package provides ``pair_style chemtrain``, ``pair_style chemtrain/kk``, and
+matching computes for exported particle and configuration outputs.
+
+Build `libconnector.so` before configuring LAMMPS:
+
+  cmake -S cmake -B build-chemtrain \
+    -D PKG_CHEMTRAIN-DEPLOY=ON \
+    -D CHEMTRAIN_DEPLOY_ROOT=/path/to/chemtrain/chemtrain-deploy \
+    -D CHEMTRAIN_DEPLOY_LIBCONNECTOR=/path/to/libconnector.so \
+    -D BUILD_MPI=ON
+
+Enable the LAMMPS Kokkos package and the appropriate CUDA architecture to build
+``chemtrain/kk``.
+
+The connector is an external shared library and must be built with a compatible
+compiler, MPI implementation, and accelerator runtime. Its directory must be
+discoverable by the dynamic loader when LAMMPS starts, for example through
+``LD_LIBRARY_PATH`` on Linux. LAMMPS neither distributes nor builds the
+connector.
+
+The package was contributed by Paul Fuchs (paul.fuchs@tum.de).
+
+Additional documentation is at https://chemtrain.readthedocs.io/.
+
+The LAMMPS package is compiled into the executable. The ``plugin load`` command
+and ``LAMMPS_PLUGIN_PATH`` do not load the package.

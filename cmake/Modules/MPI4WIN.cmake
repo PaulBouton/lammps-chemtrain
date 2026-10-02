@@ -1,0 +1,30 @@
+# set-up MS-MPI library for Windows with MinGW compatibility
+message(STATUS "Downloading and configuring MS-MPI 10.1 for Windows cross-compilation")
+SetDownloadSettings(MPICH2_WIN64_DEVEL "MS-MPI (win64)"
+  "${LAMMPS_THIRDPARTY_URL}/msmpi-win64-devel.tar.gz"
+  "939f5bad74311a84839196ca9140549189ef00785b0ef8e94ad6a180014ccb7f")
+
+include(ExternalProject)
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  ExternalProject_Add(mpi4win_build
+    URL     ${MPICH2_WIN64_DEVEL_URL}
+    URL_HASH SHA256=${MPICH2_WIN64_DEVEL_SHA256}
+    CONFIGURE_COMMAND "" BUILD_COMMAND "" INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS <SOURCE_DIR>/lib/libmsmpi.a)
+else()
+  message(FATAL_ERROR "Only x86 64-bit builds are supported with MS-MPI")
+endif()
+
+ExternalProject_get_property(mpi4win_build SOURCE_DIR)
+file(MAKE_DIRECTORY "${SOURCE_DIR}/include")
+add_library(MPI::MPI_CXX UNKNOWN IMPORTED)
+set_target_properties(MPI::MPI_CXX PROPERTIES
+  IMPORTED_LOCATION "${SOURCE_DIR}/lib/libmsmpi.a"
+  INTERFACE_INCLUDE_DIRECTORIES "${SOURCE_DIR}/include"
+  INTERFACE_COMPILE_DEFINITIONS "MPICH_SKIP_MPICXX=1")
+add_dependencies(MPI::MPI_CXX mpi4win_build)
+
+# set variables for status reporting at the end of CMake run
+set(MPI_CXX_INCLUDE_PATH "${SOURCE_DIR}/include")
+set(MPI_CXX_COMPILE_DEFINITIONS "MPICH_SKIP_MPICXX=1")
+set(MPI_CXX_LIBRARIES "${SOURCE_DIR}/lib/libmsmpi.a")
