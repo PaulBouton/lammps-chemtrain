@@ -1,2 +1,3 @@
 cmake/.qtcreator
 build
+*log.lammps
