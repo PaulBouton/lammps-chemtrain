@@ -57,3 +57,9 @@ You can also create these doc pages locally:
 % cd doc
 % make html                # creates HTML pages in doc/html
 % make pdf                 # creates Manual.pdf
+
+To build the libconnector.so lib for a CPU target follow these steps:
+
+cd chemtrain/chemtrain/deploy
+python build.py --build_cpu_pjrt_plugin --target_cpu_features=default --output_path="$PWD/out" --install_location="$PWD/lib"
+
