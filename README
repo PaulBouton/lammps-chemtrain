@@ -58,6 +58,11 @@ You can also create these doc pages locally:
 % make html                # creates HTML pages in doc/html
 % make pdf                 # creates Manual.pdf
 
+-------------------------Fork Section-------------------------
+
+To install all required python packages in your python venv :
+./setup_python_venv.bash
+
 To build the libconnector.so lib for a CPU target follow these steps:
 
 cd chemtrain/chemtrain/deploy
