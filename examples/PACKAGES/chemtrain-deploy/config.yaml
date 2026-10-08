@@ -1,0 +1,173 @@
+profiler:
+  _target_: reax.profilers.JaxProfiler
+  log_dir: /home/elbahrim/runs/mlip-si/logs/train/2026-10-07_11-10-43/prof
+task_name: train
+tags:
+- dev
+r_max: 5.0
+ase_data: null
+metrics:
+  ermse: atomic/energy_per_atom_rmse
+  frmse: atomic/force_rmse
+  srmse: atomic/stress_rmse
+from_data:
+  n_elements: 2
+  atomic_numbers:
+  - 0
+  - 14
+  avg_num_neighbours: 28.019887924194336
+  has_forces: true
+  has_energies: true
+  has_stresses: true
+  force_scale: 0.9085277915000916
+  energy_shifts:
+  - - 0.0
+  - - -129.96102905273438
+train:
+  min_epochs: 1
+  max_epochs: 40
+  check_val_every_n_epoch: 20
+test: null
+ckpt_path: null
+seed: null
+data:
+  _target_: tensorial.gcnn.data.GraphDataModule
+  dataset:
+    _target_: tensorial.gcnn.data.AseDataLoader
+    path: ./data//sitraj.xyz
+    as_graphs:
+      r_max: 5.0
+      atom_include_keys:
+      - numbers
+      - forces
+      global_include_keys:
+      - energy
+      - stress
+  train_val_test_split:
+  - 0.8
+  - 0.1
+  - 0.1
+  batch_size: 7
+model:
+  _target_: tensorial.ReaxModule
+  optimizer:
+    _partial_: true
+    _target_: optax.adamw
+    learning_rate: 0.001
+  loss_fn:
+    _target_: tensorial.mlip.losses.mlip_loss
+    energy: true
+    forces: true
+    energy_weight: 1.0
+    force_weight: 20.0
+  metrics:
+    ermse: atomic/energy_per_atom_rmse
+    frmse: atomic/force_rmse
+  model:
+    _target_: tensorial.nn.Sequential
+    layers:
+    - _target_: tensorial.gcnn.atomic.SpeciesTransform
+      atomic_numbers:
+      - 0
+      - 14
+    - _target_: tensorial.gcnn.NodewiseEncoding
+      attrs:
+        species:
+          _target_: tensorial.tensors.OneHot
+          num_classes: 2
+    - _target_: tensorial.gcnn.EdgeVectors
+    - _target_: tensorial.gcnn.EdgewiseEncoding
+      attrs:
+        edge_vectors:
+          _target_: tensorial.tensors.SphericalHarmonic
+          irreps: 0e + 1o
+          normalise: true
+    - _target_: tensorial.gcnn.RadialBasisEdgeEncoding
+      r_max: 5.0
+    - _target_: tensorial.gcnn.NodewiseLinear
+      field: attributes
+      irreps_out: 16x0o + 16x0e + 16x1o + 16x1e
+    - _target_: tensorial.gcnn.NequipLayer
+      irreps_out: 16x0o + 16x0e + 16x1o + 16x1e
+      avg_num_neighbours: 28.019887924194336
+    - _target_: tensorial.gcnn.NequipLayer
+      irreps_out: 16x0o + 16x0e + 16x1o + 16x1e
+      avg_num_neighbours: 28.019887924194336
+    - _target_: tensorial.gcnn.NequipLayer
+      irreps_out: 16x0o + 16x0e + 16x1o + 16x1e
+      avg_num_neighbours: 28.019887924194336
+    - _target_: tensorial.gcnn.NodewiseLinear
+      irreps_out: 8x0e
+    - _target_: tensorial.gcnn.NodewiseLinear
+      irreps_out: 1x0e
+      out_field: energy
+    - _target_: tensorial.gcnn.atomic.per_species_rescale
+      num_types: 2
+      scales: 0.9085277915000916
+      shifts:
+      - - 0.0
+      - - -129.96102905273438
+      field: nodes.energy
+    - _target_: tensorial.gcnn.NodewiseReduce
+      field: energy
+      out_field: predicted_energy
+    - _target_: tensorial.gcnn.Grad
+      _partial_: true
+      of: globals.predicted_energy
+      wrt: nodes.positions
+      sign: -1
+      out_field: nodes.predicted_forces
+    - _target_: tensorial.mlip.CalcStresses
+      _partial_: true
+listeners:
+  model_checkpoint:
+    _target_: reax.listeners.ModelCheckpoint
+    dirpath: /home/elbahrim/runs/mlip-si/logs/train/2026-10-07_11-10-43/checkpoints
+    filename: epoch_{epoch:03d}
+    monitor: val/loss
+    verbose: false
+    save_last: true
+    save_top_k: 1
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: null
+    save_on_train_epoch_end: null
+  metrics_printer:
+    _target_: tensorial.reaxkit.MetricsPrinter
+  parity_plotter:
+    _target_: tensorial.reaxkit.GraphParityPlotter
+    targets: globals.energy
+    predictions: globals.predicted_energy
+    fit_plot_every: 20
+  early_stopping:
+    monitor: val/loss
+    patience: 100
+    mode: max
+logger:
+  csv:
+    _target_: reax.loggers.CSVLogger
+    save_dir: /home/elbahrim/runs/mlip-si/logs/train/2026-10-07_11-10-43
+    name: csv/
+    prefix: ''
+trainer:
+  _target_: reax.Trainer
+  default_root_dir: /home/elbahrim/runs/mlip-si/logs/train/2026-10-07_11-10-43
+  accelerator: gpu
+  devices: 1
+  deterministic: false
+  profiler:
+    _target_: reax.profilers.JaxProfiler
+    log_dir: /home/elbahrim/runs/mlip-si/logs/train/2026-10-07_11-10-43/prof
+paths:
+  root_dir: .
+  data_dir: ./data/
+  log_dir: ./logs/
+  output_dir: /home/elbahrim/runs/mlip-si/logs/train/2026-10-07_11-10-43
+  work_dir: /home/elbahrim/runs/mlip-si
+extras:
+  ignore_warnings: false
+  enforce_tags: true
+  print_config: true
