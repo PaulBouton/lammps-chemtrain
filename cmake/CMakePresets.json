@@ -23,6 +23,16 @@
             }
         },
         {
+            "name": "chemtrain-cuda-hopper",
+            "inherits": "chemtrain",
+            "cacheVariables": {
+                "Kokkos_ARCH_NATIVE" : "ON",
+                "Kokkos_ARCH_HOPPER90" : "ON",
+                "Kokkos_ENABLE_CUDA" : "ON",
+                "Kokkos_ENABLE_OPENMP" : "ON"
+            }
+        },
+        {
             "name": "qtcreator",
             "inherits": "chemtrain",
             "binaryDir": "/tmp/build",
