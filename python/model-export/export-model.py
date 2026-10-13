@@ -55,14 +55,13 @@ class TensorialExporter(exporter.Exporter):
 
         # Keep the model only up to the per-atom energy
         # Drop NodewiseReduce, Grad, CalcStresses as they are handle
-        # by the Chemtrain deploy.
+        # by the Chemtrain deploy module.
         cfg.model.model.layers = cfg.model.model.layers[:-3]
 
         # Load the model and the checkpoint weigths
         self.model = tencfg.instantiate(cfg.model.model)
         ckpt_data = reax.training.get_default_checkpointing().load(ckpt)
 
-        ckpt_data = reax.training.get_default_checkpointing().load(ckpt)
         params = ckpt_data[reax.training._checkpointing.PARAMS]
         self.params = jax.tree_util.tree_map(jnp.asarray, params)
 
@@ -84,14 +83,12 @@ class TensorialExporter(exporter.Exporter):
 
 
 def export_model(output_directory, config, ckpt, unit_style):
-    """Exports Tensorial model with CPU implementation."""
+    """Exports Tensorial model with CPU & GPU (cuda) backend."""
     output_directory.mkdir(parents=True, exist_ok=True)
     model = TensorialExporter(config, ckpt, unit_style)
-    model.export(platforms=("cpu",))
+    model.export(platforms=("cpu", "cuda"))
     style = str(unit_style).strip("'\"")
     model.save(output_directory / f"tensorial-{style}.ptb")
-
-
 
 def parse_args():
      parser = argparse.ArgumentParser(description="Run with a config and a checkpoint files.")
