@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CUR_DIR="$(pwd)"
+
+source "${SCRIPT_DIR}/../../bash/utils.bash"
+
+# $1 is the path to the file holding the commit message
+msg_file="$1"
+first_line=$(head -n 1 "$msg_file")
+
+# Allow merge, revert, fixup and squash commits
+if echo "$first_line" | grep -qE '^(Merge|Revert|fixup!|squash!)'; then
+  exit 0
+fi
+
+pattern='^(FEAT|FIX|CHORE|MISC|REFACTOR|DOC|COMPIL|PERF|CI)(\([a-z0-9._-]+\))?!? ?: .{1,72}$'
+
+if ! echo "$first_line" | grep -qE "$pattern"; then
+  echo -e "${RED}Invalid commit message:${RESET} $first_line" >&2
+  echo -e "${BOLD}Expected: <type>(<optional scope>): <description>  (max 72 chars)${RESET}" >&2
+  echo -e "Allowed Types: FEAT FIX CHORE MISC REFACTOR DOC COMPIL PERF CI" >&2
+  echo -e "Example: FIX(parser): handle empty input" >&2
+  exit 1
+fi
+
+# Optional: require a blank line between subject and body
+second_line=$(sed -n '2p' "$msg_file")
+if [ -n "$second_line" ] && ! echo "$second_line" | grep -qE '^#'; then
+  echo "Leave a blank line between the subject and the body." >&2
+  exit 1
+fi

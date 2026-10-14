@@ -155,3 +155,11 @@ export CUDA_HOME=/softs/cuda/12.9.patched
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
+
+## Git Hooks
+
+To enable custom Git hooks, run the following command:
+
+```bash
+cp hooks/* .git/hooks
+```
