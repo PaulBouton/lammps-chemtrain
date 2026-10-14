@@ -80,12 +80,14 @@ The CPU connector is already stored next to the connector sources in `lammps-che
 
 As regards the GPU connector, because of its size, it must be built from sources.
 
+Then manually copy the `lib` directory in `src/CHEMTRAIN-DEPLOY/` under the name `lib-cuda`
+
 For the CPU connector output directory `lib` must be paste to `lammps-chemtrain/src/CHEMTRAIN-DEPLOY`
 
 
 #### CPU Connector
 
-To package the CPU PJRT plugin, omit the CUDA options:
+Run `build.py` from the chemtrain-deploy source directory:
 
 ```bash
 python build.py \
@@ -138,4 +140,16 @@ cd build
 cmake ../cmake --preset=chemtrain # For CPU
 cmake ../cmake --preset=chemtrain-cuda-hopper # For Nvidia Hopper based GPU
 make -j 8
+```
+
+## Run on clusters
+
+When using GPU clusters, you must first expose your CUDA installation
+
+```bash
+module avail
+module load cuda/12.9.41.patched
+export CUDA_HOME=/softs/cuda/12.9.patched
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
