@@ -1,5 +1,7 @@
 # LAMMPS CHEMTRAIN DEPLOY
 
+![NEQUIP](./ressources/NEQUIP.png)
+
 **LAMMPS** stands for **L**arge-scale **A**tomic/**M**olecular **M**assively **P**arallel **S**imulator.
 
 This is the **LAMMPS** software package with the chemtrain deploy package linked to the code.
