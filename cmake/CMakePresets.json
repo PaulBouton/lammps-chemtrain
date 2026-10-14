@@ -29,7 +29,8 @@
                 "Kokkos_ARCH_NATIVE" : "ON",
                 "Kokkos_ARCH_HOPPER90" : "ON",
                 "Kokkos_ENABLE_CUDA" : "ON",
-                "Kokkos_ENABLE_OPENMP" : "ON"
+                "Kokkos_ENABLE_OPENMP" : "ON",
+                "CHEMTRAIN_DEPLOY_LIBCONNECTOR" : "${sourceDir}/../src/CHEMTRAIN-DEPLOY/lib-cuda/libconnector.so"
             }
         },
         {
