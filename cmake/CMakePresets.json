@@ -1,0 +1,45 @@
+{
+    "version": 1,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "binaryDir": "${sourceDir}/../build",
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "chemtrain",
+            "inherits": "default",
+            "cacheVariables": {
+                "BUILD_MPI" : "ON",
+                "BUILD_OMP" : "ON",
+                "PKG_CHEMTRAIN-DEPLOY" : "ON",
+                "CHEMTRAIN_DEPLOY_ROOT" : "${sourceDir}/../chemtrain/chemtrain-deploy",
+                "CHEMTRAIN_DEPLOY_LIBCONNECTOR" : "${sourceDir}/../src/CHEMTRAIN-DEPLOY/lib/libconnector.so"
+            }
+        },
+        {
+            "name": "chemtrain-cuda-hopper",
+            "inherits": "chemtrain",
+            "cacheVariables": {
+                "Kokkos_ARCH_NATIVE" : "ON",
+                "Kokkos_ARCH_HOPPER90" : "ON",
+                "Kokkos_ENABLE_CUDA" : "ON",
+                "Kokkos_ENABLE_OPENMP" : "ON",
+                "CHEMTRAIN_DEPLOY_LIBCONNECTOR" : "${sourceDir}/../src/CHEMTRAIN-DEPLOY/lib-cuda/libconnector.so"
+            }
+        },
+        {
+            "name": "qtcreator",
+            "inherits": "chemtrain",
+            "binaryDir": "/tmp/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+[submodule "chemtrain"]
+	path = chemtrain
+	url = git@github.com:tummfm/chemtrain.git
+[submodule "tensorial"]
+	path = tensorial
+	url = git@github.com:camml-lab/tensorial.git
