@@ -131,6 +131,16 @@ Pass `--noenable_nccl` when NCCL is unavailable or should not be used.
 
 The CPU and CUDA plugin flags may be combined when one installation needs both backends. CUDA is required for the Kokkos pair style.
 
+If you don't have enough RAM to compile, you can limit the ressources used by Bazel :
+
+```bash
+python build.py \
+# Compilation options
+--bazel_options=--jobs=4 \
+--bazel_options=--local_resources=cpu=4 \
+--bazel_options=--local_resources=memory=HOST_RAM*.5
+```
+
 #### LAMMPS compilation
 
 If your are compiling for a GPU target, do not forget to set the `CHEMTRAIN_DEPLOY_LIBCONNECTOR` variable in your CMake preset.
