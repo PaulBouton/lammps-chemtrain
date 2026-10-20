@@ -72,7 +72,7 @@ make pdf                 # creates Manual.pdf
 First install all required Python packages in your Python venv:
 
 ```bash
-./setup_python_venv.bash <path_to_your_python_venv>
+./bash/setup_python_venv.bash <path_to_your_python_venv>
 ```
 
 
@@ -161,12 +161,8 @@ make -j 8
 When using GPU clusters, you must first expose your CUDA installation
 
 ```bash
-module avail
-module load cuda/12.9.41.patched
-module load cudnn/9.10.1.4
-export CUDA_HOME=/softs/cuda/12.9.patched
-export PATH=$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+# On Kraken
+source ./bash/setup_cuda_kraken.bash <path_to_your_python_venv>
 ```
 
 ## Git Hooks
