@@ -1,6 +1,6 @@
 # LAMMPS CHEMTRAIN DEPLOY
 
-![NEQUIP](./ressources/NEQUIP.png)
+![TENSORS](./ressources/tensors.png)
 
 **LAMMPS** stands for **L**arge-scale **A**tomic/**M**olecular **M**assively **P**arallel **S**imulator.
 
@@ -41,6 +41,7 @@ The LAMMPS distribution includes the following files and directories:
 | `.github` | Git and GitHub related files and tools |
 | `chemtrain` | Chemtrain Git submodule|
 | `tensorial` | Tensorial Git submodule|
+| `ressources` | Scientific documentation and schemes|
 
 ## Documentation
 
