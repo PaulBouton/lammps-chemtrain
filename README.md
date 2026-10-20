@@ -1,6 +1,6 @@
 # LAMMPS CHEMTRAIN DEPLOY
 
-![NEQUIP](./ressources/NEQUIP.png)
+![TENSORS](./ressources/tensors.png)
 
 **LAMMPS** stands for **L**arge-scale **A**tomic/**M**olecular **M**assively **P**arallel **S**imulator.
 
@@ -41,6 +41,7 @@ The LAMMPS distribution includes the following files and directories:
 | `.github` | Git and GitHub related files and tools |
 | `chemtrain` | Chemtrain Git submodule|
 | `tensorial` | Tensorial Git submodule|
+| `ressources` | Scientific documentation and schemes|
 
 ## Documentation
 
@@ -72,7 +73,7 @@ make pdf                 # creates Manual.pdf
 First install all required Python packages in your Python venv:
 
 ```bash
-./setup_python_venv.bash <path_to_your_python_venv>
+./bash/setup_python_venv.bash <path_to_your_python_venv>
 ```
 
 
@@ -107,15 +108,17 @@ Run `build.py` from the chemtrain-deploy source directory:
 python build.py \
   --enable_cuda \
   --build_gpu_pjrt_plugin \
-  --cuda_version=12.9.1 \
-  --cudnn_version=9.8.0 \
-  --cuda_compute_capabilities=8.0 \
+  --cuda_version=12.9.2 \
+  --cudnn_version=9.10.1 \
+  --cuda_compute_capabilities=9.0 \
   --target_cpu_features=default \
   --output_path="$PWD/out" \
   --install_location="$PWD/lib"
 ```
 
-Adjust the CUDA, cuDNN, and compute-capability values to the target system. Multiple compute capabilities can be supplied as a comma-separated list.
+Adjust the CUDA, cuDNN, and compute-capability values to the target system (values given here are for Kraken).
+
+Multiple compute capabilities can be supplied as a comma-separated list.
 
 `--output_path` selects the build directory and is a good place for fast temporary storage.
 
@@ -128,6 +131,16 @@ Pass `--noenable_nccl` when NCCL is unavailable or should not be used.
 `python build.py --help` lists all supported build options.
 
 The CPU and CUDA plugin flags may be combined when one installation needs both backends. CUDA is required for the Kokkos pair style.
+
+If you don't have enough RAM to compile, you can limit the ressources used by Bazel :
+
+```bash
+python build.py \
+# Compilation options
+--bazel_options=--jobs=4 \
+--bazel_options=--local_resources=cpu=4 \
+--bazel_options=--local_resources=memory=HOST_RAM*.5
+```
 
 #### LAMMPS compilation
 
@@ -149,9 +162,14 @@ make -j 8
 When using GPU clusters, you must first expose your CUDA installation
 
 ```bash
-module avail
-module load cuda/12.9.41.patched
-export CUDA_HOME=/softs/cuda/12.9.patched
-export PATH=$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+# On Kraken
+source ./bash/setup_cuda_kraken.bash <path_to_your_python_venv>
+```
+
+## Git Hooks
+
+To enable custom Git hooks, run the following command:
+
+```bash
+cp hooks/* .git/hooks
 ```
