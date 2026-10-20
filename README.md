@@ -107,15 +107,17 @@ Run `build.py` from the chemtrain-deploy source directory:
 python build.py \
   --enable_cuda \
   --build_gpu_pjrt_plugin \
-  --cuda_version=12.9.1 \
-  --cudnn_version=9.8.0 \
-  --cuda_compute_capabilities=8.0 \
+  --cuda_version=12.9.2 \
+  --cudnn_version=9.10.1 \
+  --cuda_compute_capabilities=9.0 \
   --target_cpu_features=default \
   --output_path="$PWD/out" \
   --install_location="$PWD/lib"
 ```
 
-Adjust the CUDA, cuDNN, and compute-capability values to the target system. Multiple compute capabilities can be supplied as a comma-separated list.
+Adjust the CUDA, cuDNN, and compute-capability values to the target system (values given here are for Kraken).
+
+Multiple compute capabilities can be supplied as a comma-separated list.
 
 `--output_path` selects the build directory and is a good place for fast temporary storage.
 
@@ -151,6 +153,7 @@ When using GPU clusters, you must first expose your CUDA installation
 ```bash
 module avail
 module load cuda/12.9.41.patched
+module load cudnn/9.10.1.4
 export CUDA_HOME=/softs/cuda/12.9.patched
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
