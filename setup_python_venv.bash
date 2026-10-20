@@ -3,7 +3,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CUR_DIR="$(pwd)"
 
-source "${SCRIPT_DIR}/../bash/utils.bash"
+source "${SCRIPT_DIR}/bash/utils.bash"
 
 #---------------HERE STARTS THE SCRIPT---------------
 
