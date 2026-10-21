@@ -14,7 +14,7 @@ if echo "$first_line" | grep -qE '^(Merge|Revert|fixup!|squash!)'; then
   exit 0
 fi
 
-pattern='^(FEAT|FIX|CHORE|MISC|REFACTOR|DOC|COMPIL|PERF|CI)(\([a-z0-9._-]+\))?!? ?: .{1,72}$'
+pattern='^(FEAT|FIX|CHORE|MISC|REFACTOR|DOC|COMPIL|PERF|CI|HOOK)(\([a-z0-9._-]+\))?!? ?: .{1,72}$'
 
 if ! echo "$first_line" | grep -qE "$pattern"; then
   echo -e "${RED}Invalid commit message:${RESET} $first_line" >&2

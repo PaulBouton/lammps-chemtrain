@@ -42,7 +42,7 @@ class TensorialExporter(exporter.Exporter):
         # Get the cutoff distance from the model config
         self.r_cutoff = float(cfg["r_max"])
 
-        # Newton On && Newton Off (3rd law)
+        # Count how many nequip layers are used by the model
         n_layers = sum(
             layer["_target_"].endswith("NequipLayer")
             for layer in cfg.model.model.layers
