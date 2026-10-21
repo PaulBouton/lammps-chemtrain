@@ -11,7 +11,6 @@ source "${SCRIPT_DIR}/utils.bash"
 
 help() {
     echo -e "${BOLD}Usage:${GREEN} $(basename "$0") ${RESET}${RED}<python_venv_path>${RESET}"
-    exit 1
 }
 
 if [ "$#" -ne 1 ]; then
