@@ -157,13 +157,23 @@ cmake ../cmake --preset=chemtrain-cuda-hopper # For Nvidia Hopper based GPU
 make -j 8
 ```
 
-## Run on clusters
+## Run on GRICAD clusters
 
 When using GPU clusters, you must first expose your CUDA installation
 
 ```bash
 # On Kraken
 source ./bash/setup_cuda_kraken.bash <path_to_your_python_venv>
+```
+
+## Tests
+
+To test the export-model script, run the following command :
+
+```bash
+source <path_to_your_venv>/bin/activate
+cd lammps-chemtrain
+pytest python/model-export/tests/test_export_model.py -v
 ```
 
 ## Git Hooks
