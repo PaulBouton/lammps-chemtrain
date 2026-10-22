@@ -34,7 +34,6 @@ The LAMMPS distribution includes the following files and directories:
 | `potentials` | interatomic potential files |
 | `python` | Python module for LAMMPS |
 | `src` | source files |
-| `third_party` | Copies of thirdparty software bundled with LAMMPS |
 | `tools` | pre- and post-processing tools |
 | `unittest` | test programs for use with CTest |
 | `.github` | Git and GitHub related files and tools |
