@@ -30,7 +30,6 @@ The LAMMPS distribution includes the following files and directories:
 | `cmake` | CMake build files |
 | `doc` | documentation |
 | `examples` | example inputs for many LAMMPS commands |
-| `fortran` | Fortran 2003 module for LAMMPS |
 | `lib` | additional provided or external libraries |
 | `potentials` | interatomic potential files |
 | `python` | Python module for LAMMPS |
