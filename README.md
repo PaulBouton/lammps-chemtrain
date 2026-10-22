@@ -85,52 +85,15 @@ Then manually copy the `lib` directory in `src/CHEMTRAIN-DEPLOY/` under the name
 
 For the CPU connector output directory `lib` must be paste to `lammps-chemtrain/src/CHEMTRAIN-DEPLOY`
 
+Do not forget to setup your CUDA version in if your are compiling the CUDA version in `bash/utils.bash`
 
-#### CPU Connector
-
-Run `build.py` from the chemtrain-deploy source directory:
-
-```bash
-python build.py \
-  --build_cpu_pjrt_plugin \
-  --target_cpu_features=default \
-  --output_path="$PWD/out" \
-  --install_location="$PWD/lib"
-```
-
-##### CUDA Connector
-
-Run `build.py` from the chemtrain-deploy source directory:
+To compile libconnector.so, use the following script :
 
 ```bash
-python build.py \
-  --enable_cuda \
-  --build_gpu_pjrt_plugin \
-  --cuda_version=12.9.2 \
-  --cudnn_version=9.10.1 \
-  --cuda_compute_capabilities=9.0 \
-  --target_cpu_features=default \
-  --output_path="$PWD/out" \
-  --install_location="$PWD/lib"
+./bash/setup_python_venv.bash <path_to_your_python_venv> <cpu/cuda>
 ```
 
-Adjust the CUDA, cuDNN, and compute-capability values to the target system (values given here are for Kraken).
-
-Multiple compute capabilities can be supplied as a comma-separated list.
-
-`--output_path` selects the build directory and is a good place for fast temporary storage.
-
-`--install_location` selects the runtime directory. Its contents should remain together when the installation is moved.
-
-The build enables NCCL by default.
-
-Pass `--noenable_nccl` when NCCL is unavailable or should not be used.
-
-`python build.py --help` lists all supported build options.
-
-The CPU and CUDA plugin flags may be combined when one installation needs both backends. CUDA is required for the Kokkos pair style.
-
-If you don't have enough RAM to compile, you can limit the ressources used by Bazel :
+If you don't have enough RAM to compile, you can limit the ressources used by Bazel (you'll have to modify the `setup_python_venv.bash` script)
 
 ```bash
 python build.py \
