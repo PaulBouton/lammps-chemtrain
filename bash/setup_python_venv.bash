@@ -29,12 +29,8 @@ source "${VENV_DIR}/bin/activate"
 #Install needed pip
 pip install -r requirements.txt
 pip install -e "${SCRIPT_DIR}/../chemtrain"
+pip install -e "${SCRIPT_DIR}/../chemtrain[${jax_cuda_version}]"
 pip install -e "${SCRIPT_DIR}/../chemtrain[test]"
 pip install -e "${SCRIPT_DIR}/../tensorial[dev]"
 pip install -e "${SCRIPT_DIR}/../tensorial[docs]"
 pip install sphinx_autodoc_typehints sphinx-paramlinks #Mising doc dependencies in tensorial
-
-
-
-
-

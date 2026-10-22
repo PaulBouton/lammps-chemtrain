@@ -12,11 +12,20 @@ BOLD=$'\033[1m'
 RESET=$'\033[0m'
 
 #Lib Versions
-cuda_version="12.9.2"
+
+#Python
+python_version="python3"
+
+#CUDA
+MAIN_CUDA_VERSION="12"
+
+cuda_version="${MAIN_CUDA_VERSION}.9.2"
 cudnn_version="9.10.1"
 cuda_compute_version="9.0"
 
-cuda_version_hpc_cluster="12.9.41.patched"
+cuda_version_hpc_cluster="${MAIN_CUDA_VERSION}.9.41.patched"
 cudnn_version_hpc_cluster="9.10.1.4"
 
-python_version="python3"
+jax_cuda_version="cuda${MAIN_CUDA_VERSION}"
+
+
