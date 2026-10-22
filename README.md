@@ -162,7 +162,7 @@ make -j 8
 When using GPU clusters, you must first expose your CUDA installation
 
 ```bash
-# On Kraken
+# On GRICAD Kraken
 source ./bash/setup_cuda_kraken.bash <path_to_your_python_venv>
 ```
 
@@ -181,5 +181,5 @@ pytest python/model-export/tests/test_export_model.py -v
 To enable custom Git hooks, run the following command:
 
 ```bash
-cp hooks/* .git/hooks
+./bash/setup_hooks.bash
 ```
