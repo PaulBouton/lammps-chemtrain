@@ -19,6 +19,7 @@ from pathlib import Path
 
 import jax
 import jax.numpy as jnp
+
 jax.config.update("jax_default_matmul_precision", "highest")
 
 import omegaconf
@@ -32,8 +33,7 @@ from tensorial.mlip.calculators.ase import Calculator
 
 
 class TensorialExporter(exporter.Exporter):
-
-    def __init__(self, config, ckpt, unit_style):
+    def __init__(self, config, ckpt, unit_style, layers_to_strip):
 
         self.unit_style = unit_style
 
@@ -43,11 +43,11 @@ class TensorialExporter(exporter.Exporter):
         self.r_cutoff = float(cfg["r_max"])
 
         # Count how many nequip layers are used by the model
-        n_layers = sum(
+        n_nequip_layers = sum(
             layer["_target_"].endswith("NequipLayer")
             for layer in cfg.model.model.layers
         )
-        self.nbr_order = [n_layers, n_layers]
+        self.nbr_order = [n_nequip_layers, n_nequip_layers]
 
         # Retrieve Atomic numbers from the config
         atomic_numbers = list(cfg.from_data.atomic_numbers)
@@ -56,7 +56,10 @@ class TensorialExporter(exporter.Exporter):
         # Keep the model only up to the per-atom energy
         # Drop NodewiseReduce, Grad, CalcStresses as they are handle
         # by the Chemtrain deploy module.
-        cfg.model.model.layers = cfg.model.model.layers[:-3]
+        if layers_to_strip != 0:
+            cfg.model.model.layers = cfg.model.model.layers[
+                : - layers_to_strip
+            ]
 
         # Load the model and the checkpoint weigths
         self.model = tencfg.instantiate(cfg.model.model)
@@ -67,46 +70,59 @@ class TensorialExporter(exporter.Exporter):
 
     def energy_fn(self, position, particle_data, graph, comm=None):
         n = position.shape[0]
-        g = jraph.GraphsTuple(nodes={"positions": position,"atomic_numbers": self.atomic_numbers[particle_data["species"]][:, None]},
-                              edges={},
-                              globals={}, #graph-level features
-                              senders=graph.senders,
-                              receivers=graph.receivers,
-                              n_node=jnp.array([n]),
-                              n_edge=jnp.array([graph.senders.shape[0]]))
+        g = jraph.GraphsTuple(
+            nodes={
+                "positions": position,
+                "atomic_numbers": self.atomic_numbers[particle_data["species"]][
+                    :, None
+                ],
+            },
+            edges={},
+            globals={},  # graph-level features
+            senders=graph.senders,
+            receivers=graph.receivers,
+            n_node=jnp.array([n]),
+            n_edge=jnp.array([graph.senders.shape[0]]),
+        )
         out = self.model.apply(self.params, g)
 
         e = out.nodes["energy"]
-        e = getattr(e, "array", e)   # unwrap IrrepsArray -> jax array
-        e = e[:, 0]                  # (n, 1) -> (n,)
+        e = getattr(e, "array", e)  # unwrap IrrepsArray -> jax array
+        e = e[:, 0]  # (n, 1) -> (n,)
         return jnp.where(particle_data["valid_mask"], e, 0.0)
 
 
-def export_model(output_directory, config, ckpt, unit_style):
+def export_model(output_directory, config, ckpt, unit_style, layers_to_strip):
     """Exports Tensorial model with CPU & GPU (cuda) backend."""
     output_directory.mkdir(parents=True, exist_ok=True)
-    model = TensorialExporter(config, ckpt, unit_style)
+    model = TensorialExporter(config, ckpt, unit_style, layers_to_strip)
     model.export(platforms=("cpu", "cuda"))
     style = str(unit_style).strip("'\"")
     model.save(output_directory / f"tensorial-{style}.ptb")
 
+
 def parse_args():
-     parser = argparse.ArgumentParser(description="Run with a config and a checkpoint files.")
-     parser.add_argument("config",
-                         type=Path,
-                         help="YAML config file")
-     parser.add_argument("ckpt",
-                         type=Path,
-                         help="checkpoint file")
-     parser.add_argument("unit_style",
-                         type=lambda s: s.strip().strip("'\""),
-                         help="LAMMPS unit type")
-     return parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="Run with a config and a checkpoint files."
+    )
+    parser.add_argument("-c", "--config", type=Path, help="YAML config file")
+    parser.add_argument("-ck", "--ckpt", type=Path, help="Checkpoint file")
+    parser.add_argument(
+        "-u",
+        "--unit",
+        type=lambda s: s.strip().strip("'\""),
+        help="LAMMPS unit type",
+        default="metal",
+    )
+    parser.add_argument("-l", "--layers", help="End layers to strip", default=3)
+    return parser.parse_args()
+
 
 def main():
     """Export model."""
     args = parse_args()
-    export_model(Path.cwd(), args.config, args.ckpt, args.unit_style)
+    export_model(Path.cwd(), args.config, args.ckpt, args.unit, args.layers)
+
 
 if __name__ == "__main__":
     main()
