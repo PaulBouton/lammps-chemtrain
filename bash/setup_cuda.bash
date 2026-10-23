@@ -13,7 +13,7 @@ if [ "$#" -ne 1 ]; then
     help
 else
     VENV_PYTHON_PATH="$1"
-    py_dir="$(ls -d ${VENV_PYTHON_PATH}/lib/${python_version}.* | head -1)"
+    py_dir="$(ls -d ${VENV_PYTHON_PATH}/lib/${python_version} | head -1)"
     nvcc_dir="${py_dir}/site-packages/nvidia/cuda_nvcc/"
 
     # Load CUDA
