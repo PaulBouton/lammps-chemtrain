@@ -1,0 +1,67 @@
+Bootstrap: docker
+From: ubuntu:26.04
+
+%arguments
+    APP_DIR=/usr/local/app/lammps
+    PYTHON_VENV_DIR=/usr/local/app/lammps/venv
+
+%files
+    ../src          {{ APP_DIR }}/src
+    ../chemtrain    {{ APP_DIR }}/chemtrain
+    ../tensorial    {{ APP_DIR }}/tensorial
+    ../cmake        {{ APP_DIR }}/cmake
+    ../bash         {{ APP_DIR }}/bash
+    ../python       {{ APP_DIR }}/python
+
+%environment
+    export PATH={{ APP_DIR }}/build:$PATH
+
+%post -c /bin/bash
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt update
+    apt install -y make git build-essential wget nano libopenmpi-dev openmpi-bin \
+        curl software-properties-common cmake patchelf clang tcl
+
+    add-apt-repository -y ppa:deadsnakes/ppa
+    apt update
+    apt install -y python3.13 python3.13-venv python3.13-dev
+
+    apt upgrade -y && apt autoremove --purge -y
+
+    cd {{ APP_DIR }}
+    bash/setup_python_venv.bash {{ PYTHON_VENV_DIR }} cuda
+
+    source {{ PYTHON_VENV_DIR }}/bin/activate
+    
+    pip install --upgrade pip
+    pip cache purge
+
+    bash/setup_libconnector.bash {{ PYTHON_VENV_DIR }} cuda
+    mv chemtrain/chemtrain-deploy/lib src/CHEMTRAIN-DEPLOY/lib-cuda
+    cd  {{ APP_DIR }}/chemtrain/chemtrain-deploy/
+    rm -rf bazel-* out tmp
+
+    cd  {{ APP_DIR }}
+    mkdir -p build && cd build
+    cmake ../cmake --preset=chemtrain-cuda-hopper
+    make -j "$(nproc)"
+
+    rm -rf CMakeCache.txt CMakeFiles Makefile
+    rm -rf {{ APP_DIR }}/tensorial
+
+%runscript
+    #!/bin/bash
+    cmd="${1:-}"; [ $# -gt 0 ] && shift
+    case "$cmd" in
+        lmp)
+            mpirun --np 1 lmp -in "$@"
+            ;;
+        export)
+            exec {{ PYTHON_VENV_DIR }}/bin/python {{ APP_DIR }}/python/model-export/export-model.py "$@"
+            ;;
+        *)
+           echo "Unknown command: $cmd" >&2; exit 1
+           ;;
+    esac

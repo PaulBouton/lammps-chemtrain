@@ -12,7 +12,6 @@ From: ubuntu:26.04
     ../cmake        {{ APP_DIR }}/cmake
     ../bash         {{ APP_DIR }}/bash
     ../python       {{ APP_DIR }}/python
-    ../examples/PACKAGES/chemtrain-deploy {{ APP_DIR }}/examples
 
 %environment
     export PATH={{ APP_DIR }}/build:$PATH
@@ -22,7 +21,7 @@ From: ubuntu:26.04
     export DEBIAN_FRONTEND=noninteractive
 
     apt update
-    apt install -y make git build-essential wget nano libopenmpi-dev openmpi-bin \
+    apt install -y make git build-essential wget libopenmpi-dev openmpi-bin \
         curl software-properties-common cmake
 
     add-apt-repository -y ppa:deadsnakes/ppa
@@ -36,14 +35,21 @@ From: ubuntu:26.04
 
     source {{ PYTHON_VENV_DIR }}/bin/activate
 
+    pip install --upgrade pip
+    pip cache purge
+
     mkdir -p build && cd build
     cmake ../cmake --preset=chemtrain
     make -j "$(nproc)"
 
+    rm -rf CMakeCache.txt CMakeFiles Makefile
+    rm -rf {{ APP_DIR }}/tensorial
+
 %runscript
+    #!/bin/bash
     cmd="${1:-}"; [ $# -gt 0 ] && shift
     case "$cmd" in
         lmp)    exec mpirun --use-hwthread-cpus lmp -in "$@" ;;
-        export) exec {{ APP_DIR }}/venv/bin/python {{ APP_DIR }}/python/model-export/export-model.py "$@" ;;
+        export) exec {{ PYTHON_VENV_DIR }}/bin/python {{ APP_DIR }}/python/model-export/export-model.py "$@" ;;
         *)      echo "Unknown command: $cmd" >&2; exit 1 ;;
     esac

@@ -36,7 +36,7 @@ if [[ "$TARGET_ARCH" == "cpu" ]]; then
     echo -e "${GREEN}Building CPU apptainer image${RESET}"
     apptainer build lammps-chemtrain.sif lammps-chemtrain.def
 elif [[ "$TARGET_ARCH" == "cuda" ]]; then
-    #TODO
+    echo -e "${GREEN}Building CUDA apptainer image${RESET}"
     apptainer build lammps-chemtrain-cuda.sif lammps-chemtrain-cuda.def
 else
     echo -e "${RED}Invalid target Architecture!${RESET}"
