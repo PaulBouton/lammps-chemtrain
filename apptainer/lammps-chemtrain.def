@@ -17,18 +17,19 @@ From: ubuntu:26.04
     export PATH={{ APP_DIR }}/build:$PATH
 
 %post -c /bin/bash
+    shopt -s extglob
     set -e
     export DEBIAN_FRONTEND=noninteractive
 
     apt update
-    apt install -y make git build-essential wget libopenmpi-dev openmpi-bin \
+    apt install -y git build-essential wget libopenmpi-dev openmpi-bin \
         curl software-properties-common cmake
 
     add-apt-repository -y ppa:deadsnakes/ppa
     apt update
     apt install -y python3.13 python3.13-venv python3.13-dev
 
-    apt upgrade -y && apt autoremove --purge -y
+    apt autoclean -y && apt autoremove --purge -y && apt clean -y && apt autopurge -y
 
     cd {{ APP_DIR }}
     bash bash/setup_python_venv.bash {{ PYTHON_VENV_DIR }} cpu
@@ -42,8 +43,13 @@ From: ubuntu:26.04
     cmake ../cmake --preset=chemtrain
     make -j "$(nproc)"
 
-    rm -rf CMakeCache.txt CMakeFiles Makefile
+    rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake
     rm -rf {{ APP_DIR }}/tensorial
+    rm -rf {{ APP_DIR }}/chemtrain
+    rm -rf {{ APP_DIR }}/cmake
+    rm -rf {{ APP_DIR }}/venv
+    rm -rf src/!(CHEMTRAIN-DEPLOY)
+    rm -rf python/!(model-export)
 
 %runscript
     #!/bin/bash

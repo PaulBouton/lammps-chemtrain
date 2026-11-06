@@ -17,18 +17,19 @@ From: ubuntu:26.04
     export PATH={{ APP_DIR }}/build:$PATH
 
 %post -c /bin/bash
+    shopt -s extglob
     set -e
     export DEBIAN_FRONTEND=noninteractive
 
     apt update
-    apt install -y make git build-essential wget nano libopenmpi-dev openmpi-bin \
-        curl software-properties-common cmake patchelf clang tcl
+    apt install -y git build-essential wget nano libopenmpi-dev openmpi-bin \
+        curl software-properties-common cmake patchelf clang
 
     add-apt-repository -y ppa:deadsnakes/ppa
     apt update
     apt install -y python3.13 python3.13-venv python3.13-dev
 
-    apt upgrade -y && apt autoremove --purge -y
+    apt autoclean -y && apt autoremove --purge -y && apt clean -y && apt autopurge -y
 
     cd {{ APP_DIR }}
     bash/setup_python_venv.bash {{ PYTHON_VENV_DIR }} cuda
@@ -40,16 +41,19 @@ From: ubuntu:26.04
 
     bash/setup_libconnector.bash {{ PYTHON_VENV_DIR }} cuda
     mv chemtrain/chemtrain-deploy/lib src/CHEMTRAIN-DEPLOY/lib-cuda
-    cd  {{ APP_DIR }}/chemtrain/chemtrain-deploy/
-    rm -rf bazel-* out tmp
 
     cd  {{ APP_DIR }}
     mkdir -p build && cd build
     cmake ../cmake --preset=chemtrain-cuda-hopper
     make -j "$(nproc)"
 
-    rm -rf CMakeCache.txt CMakeFiles Makefile
+    rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake
     rm -rf {{ APP_DIR }}/tensorial
+    rm -rf {{ APP_DIR }}/chemtrain
+    rm -rf {{ APP_DIR }}/cmake
+    rm -rf {{ APP_DIR }}/venv
+    rm -rf src/!(CHEMTRAIN-DEPLOY)
+    rm -rf python/!(model-export)
 
 %runscript
     #!/bin/bash
