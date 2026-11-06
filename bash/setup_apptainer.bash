@@ -17,6 +17,8 @@ fi
 
 TARGET_ARCH="$1"
 
+compression_level=19
+
 #Change tmp to have enough space
 export APPTAINER_TMPDIR=${SCRIPT_DIR}/../tmp
 rm -rf ${APPTAINER_TMPDIR}
@@ -34,10 +36,10 @@ rm -rf *.sif
 
 if [[ "$TARGET_ARCH" == "cpu" ]]; then
     echo -e "${GREEN}Building CPU apptainer image${RESET}"
-    apptainer build lammps-chemtrain.sif lammps-chemtrain.def
+    apptainer build --mksquashfs-args "-comp zstd -Xcompression-level ${compression_level}" lammps-chemtrain.sif lammps-chemtrain.def
 elif [[ "$TARGET_ARCH" == "cuda" ]]; then
     echo -e "${GREEN}Building CUDA apptainer image${RESET}"
-    apptainer build lammps-chemtrain-cuda.sif lammps-chemtrain-cuda.def
+    apptainer build --mksquashfs-args "-comp zstd -Xcompression-level ${compression_level}" lammps-chemtrain-cuda.sif lammps-chemtrain-cuda.def
 else
     echo -e "${RED}Invalid target Architecture!${RESET}"
     exit 1
