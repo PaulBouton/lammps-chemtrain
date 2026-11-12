@@ -73,8 +73,10 @@ From: ubuntu:26.04
     
     py_dir="$(ls -d  {{ PYTHON_VENV_DIR }}/lib/${python_version} | head -1)"
     nvcc_dir="${py_dir}/site-packages/nvidia/cuda_nvcc/"
+
     export XLA_FLAGS="--xla_gpu_cuda_data_dir=${nvcc_dir}"
     export PATH="${nvcc_dir}/bin:$PATH"
+    export HWLOC_ALLOW=all #Avoid bad NUMA id Allocation
 
     cmd="${1:-}"; [ $# -gt 0 ] && shift
     case "$cmd" in
