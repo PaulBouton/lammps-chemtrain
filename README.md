@@ -2,6 +2,8 @@
 
 ![TENSORS](./ressources/tensors.png)
 
+**This repo is built on top of this [LAMMPS fork](https://github.com/tummfm/lammps/tree/chemtrain-deploy)** from [ChemTrain repo](https://github.com/tummfm/chemtrain) developers.
+
 **LAMMPS** stands for **L**arge-scale **A**tomic/**M**olecular **M**assively **P**arallel **S**imulator.
 
 This is the **LAMMPS** software package with the chemtrain deploy package linked to the code.
@@ -26,16 +28,15 @@ The LAMMPS distribution includes the following files and directories:
 | `README.md` | this file |
 | `LICENSE` | the GNU General Public License (GPLv2) |
 | `CITATION.cff` | Citation information for LAMMPS in CFF format |
+| `apptainer` | Build apptainer container with LAMMPS Chemtrain code |
 | `bench` | benchmark inputs |
 | `cmake` | CMake build files |
 | `doc` | documentation |
 | `examples` | example inputs for many LAMMPS commands |
-| `fortran` | Fortran 2003 module for LAMMPS |
 | `lib` | additional provided or external libraries |
 | `potentials` | interatomic potential files |
 | `python` | Python module for LAMMPS |
 | `src` | source files |
-| `third_party` | Copies of thirdparty software bundled with LAMMPS |
 | `tools` | pre- and post-processing tools |
 | `unittest` | test programs for use with CTest |
 | `.github` | Git and GitHub related files and tools |
@@ -87,52 +88,15 @@ Then manually copy the `lib` directory in `src/CHEMTRAIN-DEPLOY/` under the name
 
 For the CPU connector output directory `lib` must be paste to `lammps-chemtrain/src/CHEMTRAIN-DEPLOY`
 
+Do not forget to setup your CUDA version in if your are compiling the CUDA version in `bash/utils.bash`
 
-#### CPU Connector
-
-Run `build.py` from the chemtrain-deploy source directory:
-
-```bash
-python build.py \
-  --build_cpu_pjrt_plugin \
-  --target_cpu_features=default \
-  --output_path="$PWD/out" \
-  --install_location="$PWD/lib"
-```
-
-##### CUDA Connector
-
-Run `build.py` from the chemtrain-deploy source directory:
+To compile libconnector.so, use the following script :
 
 ```bash
-python build.py \
-  --enable_cuda \
-  --build_gpu_pjrt_plugin \
-  --cuda_version=12.9.2 \
-  --cudnn_version=9.10.1 \
-  --cuda_compute_capabilities=9.0 \
-  --target_cpu_features=default \
-  --output_path="$PWD/out" \
-  --install_location="$PWD/lib"
+./bash/setup_python_venv.bash <path_to_your_python_venv> <cpu/cuda>
 ```
 
-Adjust the CUDA, cuDNN, and compute-capability values to the target system (values given here are for Kraken).
-
-Multiple compute capabilities can be supplied as a comma-separated list.
-
-`--output_path` selects the build directory and is a good place for fast temporary storage.
-
-`--install_location` selects the runtime directory. Its contents should remain together when the installation is moved.
-
-The build enables NCCL by default.
-
-Pass `--noenable_nccl` when NCCL is unavailable or should not be used.
-
-`python build.py --help` lists all supported build options.
-
-The CPU and CUDA plugin flags may be combined when one installation needs both backends. CUDA is required for the Kokkos pair style.
-
-If you don't have enough RAM to compile, you can limit the ressources used by Bazel :
+If you don't have enough RAM to compile, you can limit the ressources used by Bazel (you'll have to modify the `setup_python_venv.bash` script)
 
 ```bash
 python build.py \
@@ -154,16 +118,27 @@ mkdir build
 cd build
 cmake ../cmake --preset=chemtrain # For CPU
 cmake ../cmake --preset=chemtrain-cuda-hopper # For Nvidia Hopper based GPU
-make -j 8
+make -j $(nproc --all)
 ```
 
-## Run on GRICAD clusters
+## Build Apptainer Containers
 
-When using GPU clusters, you must first expose your CUDA installation
+To build Apptainer containers, you can use the provided bash scripts.
+
+Please note that for the **CUDA** container, you'll need to modify the script `bash/utils.bash` to match your cluster packages installation.
 
 ```bash
-# On Kraken
-source ./bash/setup_cuda_kraken.bash <path_to_your_python_venv>
+#Build the containers
+./bash/setup_apptainer.bash cpu #For the CPU version
+./bash/setup_apptainer.bash cuda #For the CUDA version
+
+#Run The containers
+# Run LAMMPS (CPU)
+apptainer run lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial
+# Run LAMMPS (CUDA)
+export NP=<number_of_GPU> && apptainer run --nv lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial-gpu
+# Export model checkpoint to a ptb file which can be read by LAMMPS
+apptainer run lammps-chemtrain.sif export -c config.yaml -ck last.cpkt
 ```
 
 ## Tests
@@ -181,5 +156,5 @@ pytest python/model-export/tests/test_export_model.py -v
 To enable custom Git hooks, run the following command:
 
 ```bash
-cp hooks/* .git/hooks
+./bash/setup_hooks.bash
 ```

@@ -1,0 +1,92 @@
+Bootstrap: docker
+From: ubuntu:26.04
+
+%arguments
+    APP_DIR=/usr/local/app/lammps
+    PYTHON_VENV_DIR=/usr/local/app/lammps/venv
+
+%files
+    ../src          {{ APP_DIR }}/src
+    ../chemtrain    {{ APP_DIR }}/chemtrain
+    ../tensorial    {{ APP_DIR }}/tensorial
+    ../cmake        {{ APP_DIR }}/cmake
+    ../bash         {{ APP_DIR }}/bash
+    ../python       {{ APP_DIR }}/python
+
+%environment
+    export PATH={{ APP_DIR }}/build:$PATH
+
+%post -c /bin/bash
+    shopt -s extglob
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    
+    source {{ APP_DIR }}/bash/utils.bash
+
+    apt update
+    apt install --no-install-recommends -y git build-essential wget libopenmpi-dev openmpi-bin curl software-properties-common cmake patchelf clang
+
+    add-apt-repository -y ppa:deadsnakes/ppa
+    apt update
+    apt install -y ${python_version} ${python_version}-venv ${python_version}-dev
+
+    apt autoclean -y && apt autoremove --purge -y && apt clean -y && apt autopurge -y
+    rm -rf /var/lib/apt/lists/*
+
+    cd {{ APP_DIR }}
+    bash/setup_python_venv.bash {{ PYTHON_VENV_DIR }} cuda
+
+    source {{ PYTHON_VENV_DIR }}/bin/activate
+    
+    pip install --upgrade pip
+
+    bash/setup_libconnector.bash {{ PYTHON_VENV_DIR }} cuda
+    mv chemtrain/chemtrain-deploy/lib src/CHEMTRAIN-DEPLOY/lib-cuda
+
+    cd  {{ APP_DIR }}
+    mkdir -p build && cd build
+    cmake ../cmake --preset=chemtrain-cuda-hopper
+    make -j "$(nproc)"
+    
+    # Cleaning to lighten the image
+    apt purge -y git build-essential wget curl software-properties-common cmake patchelf clang libopenmpi-dev ${python_version}-dev
+    apt autoclean -y && apt autoremove --purge -y && apt clean -y && apt autopurge -y
+    
+    rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /root/.cache
+    
+    rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake
+    rm -rf {{ APP_DIR }}/tensorial
+    rm -rf {{ APP_DIR }}/chemtrain
+    rm -rf {{ APP_DIR }}/cmake
+    rm -rf {{ APP_DIR }}/src/!(CHEMTRAIN-DEPLOY)
+    rm -rf {{ APP_DIR }}/python/!(model-export)
+
+    pip cache purge
+    find {{ PYTHON_VENV_DIR }} -type d -name __pycache__ -prune -exec rm -rf {} +
+    find {{ PYTHON_VENV_DIR }} -type d \( -name tests -o -name test \) -prune -exec rm -rf {} +
+    find {{ PYTHON_VENV_DIR }} -name '*.a' -delete
+    rm -rf {{ PYTHON_VENV_DIR }}/lib/python*/site-packages/nvidia/*/include
+    
+%runscript
+    #!/bin/bash
+    source {{ APP_DIR }}/bash/utils.bash
+    
+    py_dir="$(ls -d  {{ PYTHON_VENV_DIR }}/lib/${python_version} | head -1)"
+    nvcc_dir="${py_dir}/site-packages/nvidia/cuda_nvcc/"
+
+    export XLA_FLAGS="--xla_gpu_cuda_data_dir=${nvcc_dir}"
+    export PATH="${nvcc_dir}/bin:$PATH"
+    export HWLOC_ALLOW=all #Avoid bad NUMA id Allocation
+
+    cmd="${1:-}"; [ $# -gt 0 ] && shift
+    case "$cmd" in
+        lmp)
+            mpirun -np "${NP:-1}" lmp -in "$@"
+            ;;
+        export)
+            exec {{ PYTHON_VENV_DIR }}/bin/python {{ APP_DIR }}/python/model-export/export-model.py "$@"
+            ;;
+        *)
+           echo "Unknown command: $cmd" >&2; exit 1
+           ;;
+    esac
