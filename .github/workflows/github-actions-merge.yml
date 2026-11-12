@@ -1,0 +1,27 @@
+name: GitHub Actions merge
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  unit-tests:
+    name: Run Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up venv and run tests
+        run: |
+          ./bash/setup_python_venv.bash python_venv cuda
+          source python_venv/bin/activate
+          pytest python/model-export/tests/test_export_model.py
+
+  build-cpu-apptainer:
+    name: Build CPU Apptainer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build container
+        run: ./bash/setup_apptainer.bash cpu
