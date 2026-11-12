@@ -2,6 +2,8 @@
 
 ![TENSORS](./ressources/tensors.png)
 
+**This repo is built on top of this [LAMMPS fork](https://github.com/tummfm/lammps/tree/chemtrain-deploy)** from [ChemTrain repo](https://github.com/tummfm/chemtrain) developers.
+
 **LAMMPS** stands for **L**arge-scale **A**tomic/**M**olecular **M**assively **P**arallel **S**imulator.
 
 This is the **LAMMPS** software package with the chemtrain deploy package linked to the code.
@@ -116,14 +118,14 @@ mkdir build
 cd build
 cmake ../cmake --preset=chemtrain # For CPU
 cmake ../cmake --preset=chemtrain-cuda-hopper # For Nvidia Hopper based GPU
-make -j 8
+make -j $(nproc --all)
 ```
 
 ## Build Apptainer Containers
 
 To build Apptainer containers, you can use the provided bash scripts.
 
-Please note that for the **CUDA** container, you'll need to modify the script `bash/utils.bash` to match your installation.
+Please note that for the **CUDA** container, you'll need to modify the script `bash/utils.bash` to match your cluster packages installation.
 
 ```bash
 #Build the containers
@@ -134,18 +136,9 @@ Please note that for the **CUDA** container, you'll need to modify the script `b
 # Run LAMMPS (CPU)
 apptainer run lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial
 # Run LAMMPS (CUDA)
-apptainer run --nv lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial-gpu
+export NP=<number_of_GPU> && apptainer run --nv lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial-gpu
 # Export model checkpoint to a ptb file which can be read by LAMMPS
 apptainer run lammps-chemtrain.sif export -c config.yaml -ck last.cpkt
-```
-
-## Run on GRICAD clusters
-
-When using GPU clusters, you must first expose your CUDA installation
-
-```bash
-# On GRICAD Kraken
-source ./bash/setup_cuda_kraken.bash <path_to_your_python_venv>
 ```
 
 ## Tests
