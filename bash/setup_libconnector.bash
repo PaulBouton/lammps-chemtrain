@@ -22,6 +22,10 @@ TARGET_ARCH="$2"
 #Activate python venv
 source ${VENV_DIR}/bin/activate
 
+#Use a custom build script to use a recent version of bazel
+cp ${SCRIPT_DIR}/../python/chemtrain-deploy-bazel-build.py ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/
+mv ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/chemtrain-deploy-bazel-build.py ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/build.py 
+
 cd ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy
 
 if [[ "$TARGET_ARCH" == "cpu" ]]; then
@@ -33,6 +37,7 @@ if [[ "$TARGET_ARCH" == "cpu" ]]; then
 elif [[ "$TARGET_ARCH" == "cuda" ]]; then
     python build.py \
       --bazel_options=--jobs=$(( n_cores * 2 )) \
+      --bazel_options=--local_resources=cpu=$(( n_cores )) \
       --bazel_options=--disk_cache=$PWD \
       --enable_cuda \
       --build_gpu_pjrt_plugin \
@@ -43,8 +48,10 @@ elif [[ "$TARGET_ARCH" == "cuda" ]]; then
       --output_path="$PWD/out" \
       --install_location="$PWD/lib"
 else
+    git checkout ${SCRIPT_DIR}/../chemtrain
     echo -e "Invalid target Architecture!"
     exit 1
 fi
 
+git checkout ${SCRIPT_DIR}/../chemtrain
 cd ${CUR_DIR}
