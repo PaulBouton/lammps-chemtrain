@@ -26,6 +26,7 @@ The LAMMPS distribution includes the following files and directories:
 | `README.md` | this file |
 | `LICENSE` | the GNU General Public License (GPLv2) |
 | `CITATION.cff` | Citation information for LAMMPS in CFF format |
+| `apptainer` | Build apptainer container with LAMMPS Chemtrain code |
 | `bench` | benchmark inputs |
 | `cmake` | CMake build files |
 | `doc` | documentation |
@@ -116,6 +117,26 @@ cd build
 cmake ../cmake --preset=chemtrain # For CPU
 cmake ../cmake --preset=chemtrain-cuda-hopper # For Nvidia Hopper based GPU
 make -j 8
+```
+
+## Build Apptainer Containers
+
+To build Apptainer containers, you can use the provided bash scripts.
+
+Please note that for the **CUDA** container, you'll need to modify the script `bash/utils.bash` to match your installation.
+
+```bash
+#Build the containers
+./bash/setup_apptainer.bash cpu #For the CPU version
+./bash/setup_apptainer.bash cuda #For the CUDA version
+
+#Run The containers
+# Run LAMMPS (CPU)
+apptainer run lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial
+# Run LAMMPS (CUDA)
+apptainer run --nv lammps-chemtrain.sif lmp in.chemtrain-deploy-bulk-tensorial-gpu
+# Export model checkpoint to a ptb file which can be read by LAMMPS
+apptainer run lammps-chemtrain.sif export -c config.yaml -ck last.cpkt
 ```
 
 ## Run on GRICAD clusters
