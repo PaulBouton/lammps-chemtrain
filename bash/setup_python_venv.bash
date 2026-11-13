@@ -1,9 +1,12 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CUR_DIR="$(pwd)"
 
+CUR_DIR="$(pwd)"
 source "${SCRIPT_DIR}/utils.bash"
+
+#Exit on Error
+set -e
 
 #---------------HERE STARTS THE SCRIPT---------------
 
@@ -37,4 +40,7 @@ fi
 
 pip install -e "${SCRIPT_DIR}/../tensorial[dev]"
 pip install -e "${SCRIPT_DIR}/../tensorial[docs]"
-pip install sphinx_autodoc_typehints sphinx-paramlinks #Mising doc dependencies in tensorial
+
+pip install -r "${SCRIPT_DIR}/../requirements.txt"
+
+pip install --upgrade pip

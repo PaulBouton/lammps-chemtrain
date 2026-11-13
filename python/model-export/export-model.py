@@ -114,7 +114,7 @@ def parse_args():
         help="LAMMPS unit type",
         default="metal",
     )
-    parser.add_argument("-l", "--layers", help="End layers to strip", default=3)
+    parser.add_argument("-l", "--layers", help="End layers to strip", type=int, default=3)
     return parser.parse_args()
 
 

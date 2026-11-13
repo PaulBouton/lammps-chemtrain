@@ -5,6 +5,9 @@ CUR_DIR="$(pwd)"
 
 source "${SCRIPT_DIR}/utils.bash"
 
+#Exit on Error
+set -e
+
 #---------------HERE STARTS THE SCRIPT---------------
 
 help() {
@@ -23,8 +26,10 @@ TARGET_ARCH="$2"
 source ${VENV_DIR}/bin/activate
 
 #Use a custom build script to use a recent version of bazel
-cp ${SCRIPT_DIR}/../python/chemtrain-deploy-bazel-build.py ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/
-mv ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/chemtrain-deploy-bazel-build.py ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/build.py 
+chemtrain_deploy_dir="${SCRIPT_DIR}/../chemtrain/chemtrain-deploy/"
+cp ${SCRIPT_DIR}/../python/chemtrain-deploy-bazel-build.py ${chemtrain_deploy_dir}
+mv ${chemtrain_deploy_dir}/build.py ${chemtrain_deploy_dir}/build.py.bak
+mv ${chemtrain_deploy_dir}/chemtrain-deploy-bazel-build.py ${chemtrain_deploy_dir}/build.py
 
 cd ${SCRIPT_DIR}/../chemtrain/chemtrain-deploy
 
@@ -36,8 +41,8 @@ if [[ "$TARGET_ARCH" == "cpu" ]]; then
       --install_location="$PWD/lib"
 elif [[ "$TARGET_ARCH" == "cuda" ]]; then
     python build.py \
-      --bazel_options=--jobs=$(( n_cores * 2 )) \
-      --bazel_options=--local_resources=cpu=$(( n_cores )) \
+      --bazel_options=--discard_analysis_cache \
+      --bazel_option=--spawn_strategy=local \
       --bazel_options=--disk_cache=$PWD \
       --enable_cuda \
       --build_gpu_pjrt_plugin \
@@ -53,5 +58,5 @@ else
     exit 1
 fi
 
-git checkout ${SCRIPT_DIR}/../chemtrain
+mv ${chemtrain_deploy_dir}/build.py.bak ${chemtrain_deploy_dir}/build.py
 cd ${CUR_DIR}
