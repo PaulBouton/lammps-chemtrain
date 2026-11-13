@@ -39,8 +39,8 @@ if [[ "$TARGET_ARCH" == "cpu" ]]; then
       --install_location="$PWD/lib"
 elif [[ "$TARGET_ARCH" == "cuda" ]]; then
     python build.py \
-      --bazel_options=--jobs=$(( n_cores * 2 )) \
-      --bazel_options=--local_resources=cpu=$(( n_cores )) \
+      --bazel_options=--discard_analysis_cache \
+      --bazel_option=--spawn_strategy=local \
       --bazel_options=--disk_cache=$PWD \
       --enable_cuda \
       --build_gpu_pjrt_plugin \
