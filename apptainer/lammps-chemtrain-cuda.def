@@ -6,12 +6,13 @@ From: ubuntu:26.04
     PYTHON_VENV_DIR=/usr/local/app/lammps/venv
 
 %files
-    ../src          {{ APP_DIR }}/src
-    ../chemtrain    {{ APP_DIR }}/chemtrain
-    ../tensorial    {{ APP_DIR }}/tensorial
-    ../cmake        {{ APP_DIR }}/cmake
-    ../bash         {{ APP_DIR }}/bash
-    ../python       {{ APP_DIR }}/python
+    ../src              {{ APP_DIR }}/src
+    ../chemtrain        {{ APP_DIR }}/chemtrain
+    ../tensorial        {{ APP_DIR }}/tensorial
+    ../cmake            {{ APP_DIR }}/cmake
+    ../bash             {{ APP_DIR }}/bash
+    ../python           {{ APP_DIR }}/python
+    ../requirements.txt {{ APP_DIR }}/requirements.txt
 
 %environment
     export PATH={{ APP_DIR }}/build:$PATH
