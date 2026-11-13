@@ -14,12 +14,12 @@ if echo "$first_line" | grep -qE '^(Merge|Revert|fixup!|squash!)'; then
   exit 0
 fi
 
-pattern='^(FEAT|FIX|CHORE|MISC|REFACTOR|DOC|COMPIL|PERF|CI|HOOK|IMPROVE)(\([a-z0-9._-]+\))?!? ?: .{1,72}$'
+pattern='^(FEAT|FIX|CHORE|MISC|REFACTOR|DOC|COMPIL|PERF|CI|HOOK|IMPROVE|TEST)(\([a-z0-9._-]+\))?!? ?: .{1,72}$'
 
 if ! echo "$first_line" | grep -qE "$pattern"; then
   echo -e "${RED}Invalid commit message:${RESET} $first_line" >&2
   echo -e "${BOLD}Expected: <type>(<optional scope>): <description>  (max 72 chars)${RESET}" >&2
-  echo -e "Allowed Types: FEAT FIX CHORE MISC REFACTOR DOC COMPIL PERF CI" >&2
+  echo -e "Allowed Types: FEAT|FIX|CHORE|MISC|REFACTOR|DOC|COMPIL|PERF|CI|HOOK|IMPROVE|TEST" >&2
   echo -e "Example: FIX(parser): handle empty input" >&2
   exit 1
 fi
