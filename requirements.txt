@@ -1,0 +1,3 @@
+#Mising doc dependencies in tensorial
+sphinx_autodoc_typehints
+sphinx-paramlinks
