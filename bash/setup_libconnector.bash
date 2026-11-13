@@ -5,6 +5,9 @@ CUR_DIR="$(pwd)"
 
 source "${SCRIPT_DIR}/utils.bash"
 
+#Exit on Error
+set -e
+
 #---------------HERE STARTS THE SCRIPT---------------
 
 help() {
