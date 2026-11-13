@@ -1,3 +1,4 @@
 cmake/.qtcreator
 build
 *log.lammps
+__pycache__
